@@ -5,10 +5,13 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.stream.Collectors;
 
 @Component
 public class JwtUtil {
@@ -20,12 +23,17 @@ public class JwtUtil {
 
     private final SecretKey key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(SECRET_KEY_BASE64));
 
-    public String generateToken(String email, String role) {
+    public String generateToken(Authentication authentication) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + EXPIRATION_TIME_MS);
 
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        String role = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(","));
+
         return Jwts.builder()
-                .subject(email)
+                .subject(userDetails.getUsername())
                 .claim("role", role)
                 .issuedAt(now)
                 .expiration(expiry)
